@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-// base command 
+// base command
 var rootCmd = &cobra.Command{
 	Use:   "ttg",
 	Short: "A brief description of your application",
@@ -15,7 +16,9 @@ var rootCmd = &cobra.Command{
 	to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("Your args: %v", args)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -38,5 +41,3 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
-
-
