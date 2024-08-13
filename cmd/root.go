@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -10,15 +9,15 @@ import (
 // base command
 var rootCmd = &cobra.Command{
 	Use:   "ttg",
-	Short: "A brief description of your application",
-	Long: `Cobra is a CLI library for Go that empowers applications.
-	This application is a tool to generate the needed files
-	to quickly create a Cobra application.`,
+	Short: "A simple wy to track your time.",
+	Long: `Time to Go is a CLI application that enables the user to track their time spent on defined projects. 
+	The goal is to have a quick and reliable way to keep track and being able to receive a report.`,
+
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Your args: %v", args)
-	},
+	// Run: func(cmd *cobra.Command, args []string) {
+	// 	fmt.Printf("Your args: %v", args)
+	// },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

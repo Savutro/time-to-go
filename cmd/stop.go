@@ -1,11 +1,10 @@
-/*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
-
-*/
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -13,28 +12,36 @@ import (
 // stopCmd represents the stop command
 var stopCmd = &cobra.Command{
 	Use:   "stop",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Stop tracking time",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("stop called")
+		data, err := os.ReadFile("current.json")
+		if err != nil {
+			fmt.Println("No ongoing tracking found.")
+			return
+		}
+
+		var entry TimeEntry
+		json.Unmarshal(data, &entry)
+		entry.EndTime = time.Now()
+
+		// Save the entry to a history file
+		var history []TimeEntry
+		historyData, _ := os.ReadFile("history.json")
+		if len(historyData) > 0 {
+			json.Unmarshal(historyData, &history)
+		}
+		history = append(history, entry)
+
+		newHistoryData, _ := json.Marshal(history)
+		os.WriteFile("history.json", newHistoryData, 0644)
+
+		// Delete the current tracking file
+		os.Remove("current.json")
+
+		fmt.Printf("Stopped tracking time for project: %s\n", entry.Project)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(stopCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// stopCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// stopCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
