@@ -19,16 +19,33 @@ type TimeEntry struct {
 var startCmd = &cobra.Command{
 	Use:   "start [project name]",
 	Short: "Start tracking time for a project",
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		project := args[0]
+		// Default project name to "other" if not provided
+		project := "other"
+		if len(args) > 0 {
+			project = args[0]
+		}
+
 		entry := TimeEntry{
 			Project:   project,
 			StartTime: time.Now(),
 		}
 
-		data, _ := json.Marshal(entry)
-		os.WriteFile("current.json", data, 0644)
+		dir := fmt.Sprintf("~/.local/state/ttg/%s.json", project)
+
+		data, err := json.Marshal(entry)
+		if err != nil {
+			fmt.Printf("Couldn't serialize entry: %v", err)
+			return
+		}
+
+		err = os.WriteFile(dir, data, 0644)
+		if err != nil {
+			fmt.Printf("Couldnt write file: %v", err)
+			return
+		}
+
 		fmt.Printf("Started tracking time for project: %s\n", project)
 	},
 }
