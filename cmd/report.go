@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -22,13 +24,51 @@ var reportCmd = &cobra.Command{
 	Use:   "report",
 	Short: "Generate a report for a specific time frame",
 	Run: func(cmd *cobra.Command, args []string) {
+		// Load and validate the project list
+		projectList, err := loadProjectList()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		// Validate included projects
+		for _, project := range includeProjects {
+			if err := validateProjectName(project, projectList); err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+
+		// Validate ignored projects
+		for _, project := range ignoreProjects {
+			if err := validateProjectName(project, projectList); err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+
+		// Get the current user and construct the history file path
+		usr, err := user.Current()
+		if err != nil {
+			fmt.Printf("Couldn't get current user: %v\n", err)
+			return
+		}
+		historyFilePath := filepath.Join(usr.HomeDir, ".local", "share", "ttg", "history.json")
+
+		// Read the history file
 		var history []TimeEntry
-		historyData, err := os.ReadFile("history.json")
+		historyData, err := os.ReadFile(historyFilePath)
 		if err != nil {
 			fmt.Println("No history found.")
 			return
 		}
-		json.Unmarshal(historyData, &history)
+
+		// Deserialize the history data
+		err = json.Unmarshal(historyData, &history)
+		if err != nil {
+			fmt.Printf("Couldn't deserialize history: %v\n", err)
+			return
+		}
 
 		// Determine the from and to dates
 		var from, to time.Time
@@ -49,24 +89,22 @@ var reportCmd = &cobra.Command{
 			}
 		}
 
+		// Default to last week if no dates are provided
 		if fromDate == "" && toDate == "" {
-			// Default: Last week, ending today
 			to = time.Now().Truncate(24 * time.Hour)
 			from = to.AddDate(0, 0, -7)
 		} else if fromDate == "" {
-			// If only toDate is specified, report from one week before toDate
 			from = to.AddDate(0, 0, -7)
 		} else if toDate == "" {
-			// If only fromDate is specified, report from that day to one week later
 			to = from.AddDate(0, 0, 7)
 		}
 
 		report := make(map[string]time.Duration)
 		var detailedReport = make(map[string][]TimeEntry)
 
+		// Generate the report
 		for _, entry := range history {
 			if entry.EndTime.After(from) && entry.EndTime.Before(to.AddDate(0, 0, 1)) {
-				// Filter by project name if needed
 				if (len(includeProjects) == 0 || contains(includeProjects, entry.Project)) &&
 					!contains(ignoreProjects, entry.Project) {
 
@@ -86,19 +124,6 @@ var reportCmd = &cobra.Command{
 			outputTextReport(from, to, report, detailedReport)
 		}
 	},
-}
-
-func formatDuration(d time.Duration) string {
-	hours := int(d.Hours())
-	minutes := int(d.Minutes()) % 60
-	seconds := int(d.Seconds()) % 60
-
-	if hours > 0 {
-		return fmt.Sprintf("%dh%02dm%02ds", hours, minutes, seconds)
-	} else if minutes > 0 {
-		return fmt.Sprintf("%dm%02ds", minutes, seconds)
-	}
-	return fmt.Sprintf("%ds", seconds)
 }
 
 func outputTextReport(from, to time.Time, report map[string]time.Duration, detailedReport map[string][]TimeEntry) {

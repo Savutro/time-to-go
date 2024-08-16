@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -27,12 +29,37 @@ var startCmd = &cobra.Command{
 			project = args[0]
 		}
 
+		// Load and validate the project list
+		projectList, err := loadProjectList()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if err := validateProjectName(project, projectList); err != nil {
+			fmt.Println(err)
+			return
+		}
+
 		entry := TimeEntry{
 			Project:   project,
 			StartTime: time.Now(),
 		}
 
-		dir := fmt.Sprintf("~/.local/state/ttg/%s.json", project)
+		// Existing logic to start tracking...
+		usr, err := user.Current()
+		if err != nil {
+			fmt.Printf("Couldn't get current user: %v\n", err)
+			return
+		}
+
+		dir := filepath.Join(usr.HomeDir, ".local", "state", "ttg")
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			fmt.Printf("Couldn't create directory: %v\n", err)
+			return
+		}
+
+		filePath := filepath.Join(dir, fmt.Sprintf("%s.json", project))
 
 		data, err := json.Marshal(entry)
 		if err != nil {
@@ -40,9 +67,9 @@ var startCmd = &cobra.Command{
 			return
 		}
 
-		err = os.WriteFile(dir, data, 0644)
+		err = os.WriteFile(filePath, data, 0644)
 		if err != nil {
-			fmt.Printf("Couldnt write file: %v", err)
+			fmt.Printf("Couldn't write file: %v", err)
 			return
 		}
 
